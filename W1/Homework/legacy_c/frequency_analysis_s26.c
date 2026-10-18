@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <fcntl.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -16,6 +17,18 @@ typedef struct {
 int char_to_int(char c) { return c - 'A'; }
 
 char int_to_char(int i) { return i + 'A'; }
+
+int preprocess(char *buffer, char *output) {
+  int size = 0;
+
+  for (int i = 0; buffer[i] != '\0'; i++) {
+    if (isalpha(buffer[i])) {
+      output[size++] = toupper(buffer[i]);
+    }
+  }
+  output[size] = '\0';
+  return size;
+}
 
 void encrypt(char *plaintext, char *ciphertext, int size, char *key_alphabet) {
   for (int i = 0; i < size; i++) {
@@ -140,8 +153,12 @@ int main(void) {
 
   buffer[buff_size - 1] = '\0';
   buff_size--;
+  // Text Preprocessing:
 
-  printf("Our plaintext:\n%s\n", buffer);
+  char preprocessed_plaintext[buff_size];
+  int plaintext_size = preprocess(buffer, preprocessed_plaintext);
+
+  printf("Our plaintext:\n%s\n", preprocessed_plaintext);
 
   // Generating a random Aplhabet Permutation
 
@@ -172,7 +189,7 @@ int main(void) {
 
   // Encrypting
   char ciphertext[buff_size];
-  encrypt(buffer, ciphertext, buff_size, key_alphabet);
+  encrypt(preprocessed_plaintext, ciphertext, plaintext_size, key_alphabet);
 
   printf("Our ciphertext:\n%s\n", ciphertext);
 
@@ -200,15 +217,15 @@ int main(void) {
   const char E_cipher = freq_array[0].character;
   const char T_cipher = freq_array[1].character;
 
-  printf("Most Likely character to be E is: %c\n", E_cipher);
-  printf("Most Likely character to be T is: %c\n", T_cipher);
+  // printf("Most Likely character to be E is: %c\n", E_cipher);
+  // printf("Most Likely character to be T is: %c\n", T_cipher);
 
   char H_cipher = deduce_h(ciphertext, buff_size, E_cipher, T_cipher);
-  printf("Most Likely character to be H is: %c\n", H_cipher);
+  // printf("Most Likely character to be H is: %c\n", H_cipher);
 
   // Then analyse the appearance of digraph TO
   char O_cipher = deduce_o(ciphertext, buff_size, T_cipher, H_cipher, E_cipher);
-  printf("Most Likely character to be O is: %c\n", O_cipher);
+  // printf("Most Likely character to be O is: %c\n", O_cipher);
 
   // Last we make a assumption of finding the shifting key and partially break
   // the cipher
@@ -246,7 +263,7 @@ int main(void) {
       deciphered_characters++;
     }
 
-    if (partially_decrypted[i] == buffer[i]) {
+    if (partially_decrypted[i] == preprocessed_plaintext[i]) {
       correct_characters++;
     }
   }
@@ -254,36 +271,6 @@ int main(void) {
   printf("Deciphered characters: %d\n", deciphered_characters);
   printf("Correct Decryption: %d\n", correct_characters);
 
-  // counting correct occurences of THE
-  int the_occurences = 0;
-
-  for (int i = 0; i <= buff_size - 3; i++) {
-    if (partially_decrypted[i] == 'T' && partially_decrypted[i + 1] == 'H' &&
-        partially_decrypted[i + 2] == 'E') {
-      if (partially_decrypted[i] == buffer[i] &&
-          partially_decrypted[i + 1] == buffer[i + 1] &&
-          partially_decrypted[i + 2] == buffer[i + 2]) {
-        the_occurences++;
-      }
-    }
-  }
-
-  printf("Correct occurences of THE: %d\n", the_occurences);
-
-  // counting occurences of TO
-
-  int to_occurences = 0;
-
-  for (int i = 0; i <= buff_size - 2; i++) {
-    if (partially_decrypted[i] == 'T' && partially_decrypted[i + 1] == 'O') {
-      if (partially_decrypted[i] == buffer[i] &&
-          partially_decrypted[i + 1] == buffer[i + 1]) {
-        to_occurences++;
-      }
-    }
-  }
-
-  printf("Correct occurences of TO: %d\n", to_occurences);
   free(freq_array);
   return 0;
 }
