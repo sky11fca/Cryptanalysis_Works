@@ -2,7 +2,7 @@
 Viginere cipher cryptanalysis (V(26))
 
 1. Computing the key length:
-- for each coset y_{m, j}, the Index of Coincidence must be apporximatly equal to 0.065
+- for each coset y_{m, j}, the Index of Coincidence must be apporximatly equal to 0.065 (By default, 0.065 errors out when finding the key length, as such the threshold is 0.055)
     Index of Coincidence:
     IC(alpha) = sum_i f_i(f_i - 1) / (n(n-1)
 
@@ -10,7 +10,10 @@ Viginere cipher cryptanalysis (V(26))
     -for each coset j, we find s such that the mutual IC of the text and message shifted y_{m,j} with s is aproximately equal to 0.065
     - Then k_j = (26 - s) mod 26
 
-3. Chi-square scores for multiple m instances  to pich the best m
+3. Case of a key that is not periodical (ABABABABAA or ABCABCABCABA)
+    - Finding a key with certain repeating pattern result in wrong keysize, the case above things work otherway
+    - We must reiterate with multiple candidate key form recalling the key finding function based off new key size, but also providing an average
+    - And then for each candidate key, we find the one that is greater than the best one minus an epsilon
 """
 
 import string
@@ -117,9 +120,6 @@ def find_key_length(ciphertext: str) -> int:
 
 
 def find_key_for_length(ciphertext: str, m: int):
-    """MIC test for a fixed candidate length m: for each coset j pick the
-    shift s maximizing MIC, then k_j = (26 - s) mod 26.
-    Returns (key, average peak MIC over the m cosets)."""
     key = []
     total = 0.0
     for j in range(m):
@@ -134,25 +134,6 @@ def find_key_for_length(ciphertext: str, m: int):
 
 
 def find_full_key(ciphertext: str, m: int) -> str:
-    """Handle keys built from a shorter period, e.g. ABABABABAA or
-    ABCABCABCABA.
-
-    The IC test returns the smallest m whose cosets look like English
-    (IC ~= 0.065). If the real key is an exact repetition of a shorter
-    word (ABABAB...), that minimal m already decrypts everything
-    correctly - the longer original is information-theoretically
-    unrecoverable, since it produces the very same ciphertext.
-
-    But if the real key only *almost* repeats (ABABABABAA,
-    ABCABCABCABA), the cosets of the minimal m are mixtures: mostly one
-    key letter plus a few contaminating letters. The MIC test then
-    returns the majority letter and the deviating positions stay wrong.
-
-    Remedy, using only the MIC: try every multiple of m as candidate
-    length. A candidate whose cosets are pure English-like text peaks at
-    MIC ~= 0.065; a mixed coset peaks lower. Keep the smallest candidate
-    whose average peak MIC is within MIC_EPSILON of the best.
-    """
     length = len(ciphertext)
     candidates = []
 
@@ -194,7 +175,7 @@ def main() -> int:
 
     key_len = find_key_length(ciphertext)
     if key_len == -1:
-        print(f"Key not found", file=sys.stderr)
+        print("Key not found", file=sys.stderr)
         return 1
     print(f"Effective key length: {key_len}")
 
